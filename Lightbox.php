@@ -1,7 +1,5 @@
 <?php
 
-require_api( 'crypto_api.php' );
-
 /**
  * Lightbox Integration
  * Copyright (C) Karim Ratib (karim@meedan.com)
@@ -25,15 +23,14 @@ class LightboxPlugin extends MantisPlugin {
     function register() {
         $this->name = plugin_lang_get('title');
         $this->description = plugin_lang_get('description');
-        $this->version = '1.0';
+        $this->version = '1.1.0';
         $this->page = 'config_page';
         $this->requires = array(
             'MantisCore' => '2.0.0',
         );
         $this->author = 'Karim Ratib';
         $this->contact = 'karim@meedan.com';
-        $this->url = 'http://code.meedan.com';
-        $this->nonce = crypto_generate_uri_safe_nonce( 16 );
+        $this->url = 'https://github.com/sergiodevelop78/Lightbox';
     }
 
     /**
@@ -49,16 +46,16 @@ class LightboxPlugin extends MantisPlugin {
     function hooks() {
         return array(
             'EVENT_LAYOUT_RESOURCES' => 'add_lightbox',
-            'EVENT_CORE_HEADERS' => 'csp_headers',
         );
     }
 
+    // Updated 2026-10-09: external configuration and Lightbox2 2.12.0.
     function add_lightbox($event) {
         $currentUrl = explode('/', $_SERVER['PHP_SELF']);
         if (end($currentUrl) !== 'view.php') return;
 
-        $lightbox_display_on_img_preview = plugin_config_get('display_on_img_preview');
-        $lightbox_display_on_img_link = plugin_config_get('display_on_img_link');
+        $lightbox_display_on_img_preview = (int) (ON == plugin_config_get('display_on_img_preview'));
+        $lightbox_display_on_img_link = (int) (ON == plugin_config_get('display_on_img_link'));
         $lightboxJs = plugin_file('lightbox/js/lightbox.min.js');
         $lightboxCss = plugin_file('lightbox/css/lightbox.min.css');
         $lightboxMantis = plugin_file('Lightbox.js');
@@ -70,13 +67,10 @@ class LightboxPlugin extends MantisPlugin {
         ];
 
         return <<<LIGHTBOX
-<script type="text/javascript" nonce={$this->nonce}>
-var lightbox_display_on_img_preview = {$lightbox_display_on_img_preview};
-var lightbox_display_on_img_link = {$lightbox_display_on_img_link};
-</script>
 <link href="{$lightboxCss}" rel="stylesheet">
-<script type="text/javascript" src="{$lightboxJs}"></script>
-<script type="text/javascript" src="{$lightboxMantis}"></script>
+<script src="{$lightboxJs}"></script>
+<script id="mantis-lightbox-config" src="{$lightboxMantis}"
+ data-preview="{$lightbox_display_on_img_preview}" data-link="{$lightbox_display_on_img_link}"></script>
 <style>
 .lb-nav a.lb-prev {
   background-image: url({$images['prev']});
@@ -94,11 +88,4 @@ var lightbox_display_on_img_link = {$lightbox_display_on_img_link};
 LIGHTBOX;
     }
 
-    /**
-     * Add Content Security Policy headers for our script.
-     */
-    function csp_headers() {
-       http_csp_add( 'script-src', "'nonce-{$this->nonce}'" );
-       http_csp_add( 'img-src', "data:" );
-    }
 }
